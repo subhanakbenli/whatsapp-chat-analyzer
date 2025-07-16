@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(touch:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }

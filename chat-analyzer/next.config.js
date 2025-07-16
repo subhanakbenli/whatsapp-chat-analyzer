@@ -1,15 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable experimental features
-  experimental: {
-    // Enable Server Components
-    serverComponentsExternalPackages: ['pg', '@neondatabase/serverless'],
-  },
-  
-  // Environment variables
-  env: {
-    CUSTOM_KEY: 'my-value',
-  },
+  // Server external packages
+  serverExternalPackages: ['pg', '@neondatabase/serverless'],
   
   // Image optimization
   images: {
@@ -99,32 +91,8 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   
-  // Production optimizations
-  swcMinify: true,
-  
   // Custom build configuration
   distDir: '.next',
-  
-  // Asset optimization
-  optimizeFonts: true,
-  optimizeImages: true,
-  
-  // Bundle analyzer (for development)
-  ...(process.env.ANALYZE === 'true' && {
-    webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-      if (!dev && !isServer) {
-        const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
-        config.plugins.push(
-          new BundleAnalyzerPlugin({
-            analyzerMode: 'static',
-            reportFilename: './bundle-analyzer.html',
-            openAnalyzer: false,
-          })
-        );
-      }
-      return config;
-    },
-  }),
 };
 
 module.exports = nextConfig;
