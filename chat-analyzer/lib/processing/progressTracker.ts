@@ -1,15 +1,92 @@
+type SessionStatus = 'initialized' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+type StepStatus = 'pending' | 'in_progress' | 'completed' | 'failed';
+
+interface Step {
+  name: string;
+  progress: number;
+  status: StepStatus;
+  startTime: number;
+  endTime: number | null;
+  result?: any;
+  error?: any;
+}
+
+interface SessionError {
+  step: string;
+  error: any;
+  timestamp: number;
+}
+
+interface SessionWarning {
+  step: string;
+  warning: any;
+  timestamp: number;
+}
+
+interface Session {
+  id: string;
+  totalSteps: number;
+  currentStep: number;
+  progress: number;
+  status: SessionStatus;
+  startTime: number;
+  endTime: number | null;
+  steps: Step[];
+  errors: SessionError[];
+  warnings: SessionWarning[];
+  result?: any;
+  error?: any;
+}
+
+interface ProgressInfo {
+  id: string;
+  progress: number;
+  status: SessionStatus;
+  currentStep: number;
+  totalSteps: number;
+  elapsedTime: number;
+  estimatedTimeRemaining: number | null;
+  steps: {
+    name: string;
+    status: StepStatus;
+    progress: number;
+    duration: number | null;
+  }[];
+  errors: SessionError[];
+  warnings: SessionWarning[];
+}
+
+interface SessionStats {
+  sessionId: string;
+  totalDuration: number;
+  averageStepDuration: number;
+  completedSteps: number;
+  failedSteps: number;
+  totalSteps: number;
+  errorCount: number;
+  warningCount: number;
+  stepStats: {
+    name: string;
+    duration: number | null;
+    status: StepStatus;
+    progress: number;
+  }[];
+}
+
 export class ProgressTracker {
+  private sessions: Map<string, Session>;
+
   constructor() {
-    this.sessions = new Map();
+    this.sessions = new Map<string, Session>();
   }
 
-  createSession(sessionId, totalSteps) {
-    const session = {
+  createSession(sessionId: string, totalSteps: number): Session {
+    const session: Session = {
       id: sessionId,
       totalSteps,
       currentStep: 0,
       progress: 0,
-      status: 'initialized',
+      status: 'initialized' as SessionStatus,
       startTime: Date.now(),
       endTime: null,
       steps: [],
@@ -21,7 +98,7 @@ export class ProgressTracker {
     return session;
   }
 
-  updateStep(sessionId, stepName, progress = null, status = 'in_progress') {
+  updateStep(sessionId: string, stepName: string, progress: number | null = null, status: StepStatus = 'in_progress'): Session {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -49,7 +126,7 @@ export class ProgressTracker {
     return session;
   }
 
-  completeStep(sessionId, stepName, result = null) {
+  completeStep(sessionId: string, stepName: string, result: any = null): Session {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -67,7 +144,7 @@ export class ProgressTracker {
     return session;
   }
 
-  failStep(sessionId, stepName, error) {
+  failStep(sessionId: string, stepName: string, error: any): Session {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -90,7 +167,7 @@ export class ProgressTracker {
     return session;
   }
 
-  addWarning(sessionId, stepName, warning) {
+  addWarning(sessionId: string, stepName: string, warning: any): Session {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -105,7 +182,7 @@ export class ProgressTracker {
     return session;
   }
 
-  calculateOverallProgress(sessionId) {
+  calculateOverallProgress(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
@@ -128,11 +205,11 @@ export class ProgressTracker {
     }
   }
 
-  getSession(sessionId) {
+  getSession(sessionId: string): Session | undefined {
     return this.sessions.get(sessionId);
   }
 
-  getSessionProgress(sessionId) {
+  getSessionProgress(sessionId: string): ProgressInfo | null {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
 
@@ -157,7 +234,7 @@ export class ProgressTracker {
     };
   }
 
-  estimateTimeRemaining(session) {
+  estimateTimeRemaining(session: Session): number | null {
     if (session.progress === 0) return null;
 
     const elapsedTime = Date.now() - session.startTime;
@@ -165,7 +242,7 @@ export class ProgressTracker {
     return Math.max(0, estimatedTotalTime - elapsedTime);
   }
 
-  completeSession(sessionId, result = null) {
+  completeSession(sessionId: string, result: any = null): Session {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -179,7 +256,7 @@ export class ProgressTracker {
     return session;
   }
 
-  failSession(sessionId, error) {
+  failSession(sessionId: string, error: any): Session {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -192,7 +269,7 @@ export class ProgressTracker {
     return session;
   }
 
-  cancelSession(sessionId) {
+  cancelSession(sessionId: string): Session {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new Error(`Session ${sessionId} not found`);
@@ -204,17 +281,17 @@ export class ProgressTracker {
     return session;
   }
 
-  cleanupSession(sessionId) {
+  cleanupSession(sessionId: string): boolean {
     return this.sessions.delete(sessionId);
   }
 
-  getActiveSessions() {
+  getActiveSessions(): Session[] {
     return Array.from(this.sessions.values()).filter(session => 
       session.status === 'in_progress' || session.status === 'initialized'
     );
   }
 
-  getSessionStats(sessionId) {
+  getSessionStats(sessionId: string): SessionStats | null {
     const session = this.sessions.get(sessionId);
     if (!session) return null;
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAnalysis } from '@/lib/database/queries';
 import { createTables } from '@/lib/database/migrations';
-import ChatParser from '@/lib/parsers/chatParser';
+import { ChatParser } from '@/lib/parsers/chatParser';
 import { SmartChunking } from '@/lib/processing/smartChunking';
 import { GeminiClient } from '@/lib/ai/geminiClient';
 import { ResponseAggregator } from '@/lib/ai/responseAggregator';
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       conversationBreakHours: 4
     });
 
-    const chunks = await chunker.chunkMessages(parsedData.messages, (progress) => {
+    const chunks = await chunker.chunkMessages(parsedData.messages, (progress: any) => {
       progressTracker.updateStep(sessionId, 'chunking_messages', 
         Math.round((progress.processed / progress.total) * 100), 'in_progress');
     });
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         console.error(`Error analyzing chunk ${chunk.id}:`, error);
         progressTracker.addWarning(sessionId, 'ai_analysis', 
-          `Failed to analyze chunk ${chunk.id}: ${error.message}`);
+          `Failed to analyze chunk ${chunk.id}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
 
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
         processingInfo: {
           sessionId,
           chunks: chunks.length,
-          processingTime: Date.now() - progressTracker.getSession(sessionId).startTime
+          processingTime: Date.now() - (progressTracker.getSession(sessionId)?.startTime || 0)
         }
       },
       fileName: file.name,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
         messageCount: parsedData.messages.length,
         participantCount: parsedData.participants.length,
         chunkCount: chunks.length,
-        processingTime: Date.now() - progressTracker.getSession(sessionId).startTime
+        processingTime: Date.now() - (progressTracker.getSession(sessionId)?.startTime || 0)
       }
     });
 

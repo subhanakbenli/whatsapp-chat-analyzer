@@ -6,10 +6,10 @@ import { DataExporter } from '@/lib/reports/dataExporter';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const analysisId = params.id;
+    const { id: analysisId } = await params;
     const { searchParams } = new URL(request.url);
     const format = searchParams.get('format') || 'json';
     const includeRawData = searchParams.get('includeRawData') === 'true';
@@ -124,10 +124,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const analysisId = params.id;
+    const { id: analysisId } = await params;
     const body = await request.json();
     const { format, filters, options } = body;
     
