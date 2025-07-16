@@ -17,8 +17,14 @@ export function extractMessages(chatContent) {
     // iOS 24h: [31/12/2023, 23:59:00] John: Hello
     ios_24h: /^\[(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?)\]\s*([^:]+):\s*(.*)$/i,
     
-    // System messages
-    system: /^(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\s*-\s*(.+)$/i
+    // Turkish format: 18.01.2023 20:14 - Sübhan: Hello
+    turkish_default: /^(\d{1,2}\.\d{1,2}\.\d{2,4})\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*([^:]+):\s*(.*)$/i,
+    
+    // System messages - original format
+    system: /^(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\s*-\s*(.+)$/i,
+    
+    // System messages - Turkish format
+    system_turkish: /^(\d{1,2}\.\d{1,2}\.\d{2,4})\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(.+)$/i
   };
 
   for (const line of lines) {
@@ -34,7 +40,7 @@ export function extractMessages(chatContent) {
           messages.push(currentMessage);
         }
 
-        if (formatName === 'system') {
+        if (formatName === 'system' || formatName === 'system_turkish') {
           // System message
           currentMessage = {
             timestamp: parseTimestamp(match[1], match[2]),
@@ -76,12 +82,18 @@ export function extractMessages(chatContent) {
 
 function parseTimestamp(dateStr, timeStr) {
   try {
-    // Handle different date formats
-    const dateParts = dateStr.split('/');
     let day, month, year;
 
-    if (dateParts.length === 3) {
-      // Determine if it's MM/DD/YYYY or DD/MM/YYYY
+    // Handle different date formats
+    if (dateStr.includes('.')) {
+      // Turkish format: dd.MM.yyyy
+      const dateParts = dateStr.split('.');
+      day = parseInt(dateParts[0]);
+      month = parseInt(dateParts[1]);
+      year = parseInt(dateParts[2]);
+    } else if (dateStr.includes('/')) {
+      // US/International format: MM/DD/YYYY or DD/MM/YYYY
+      const dateParts = dateStr.split('/');
       const first = parseInt(dateParts[0]);
       const second = parseInt(dateParts[1]);
       
@@ -100,8 +112,13 @@ function parseTimestamp(dateStr, timeStr) {
       }
       
       year = parseInt(dateParts[2]);
-      if (year < 100) year += 2000; // Handle 2-digit years
+    } else {
+      // Fallback
+      return new Date();
     }
+
+    // Handle 2-digit years
+    if (year < 100) year += 2000;
 
     // Parse time
     const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);

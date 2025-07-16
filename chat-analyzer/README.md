@@ -9,13 +9,12 @@
 - **Interactive Dashboard**: Beautiful visualizations with Chart.js and Tailwind CSS
 - **Multi-Format Export**: PDF, HTML, CSV, and JSON export options
 - **Real-time Progress**: Live progress tracking during analysis
-- **Privacy-First**: No data storage, processing happens securely and temporarily
+- **Privacy-First**: No data storage, processing happens in memory and results are temporary
 - **Responsive Design**: Works perfectly on desktop and mobile devices
 
 ## 📋 Requirements
 
 - Node.js 18+ and npm
-- Neon PostgreSQL database (or compatible PostgreSQL)
 - Google Gemini 2.5 Pro API key
 - Modern web browser
 
@@ -35,7 +34,6 @@
 3. **Set up environment variables**
    Edit `.env.local` with your configuration:
    ```env
-   DATABASE_URL=postgresql://username:password@hostname/database?sslmode=require
    GEMINI_API_KEY=your_gemini_api_key_here
    NEXTJS_URL=http://localhost:3000
    ```
@@ -147,7 +145,6 @@ docker build -t whatsapp-chat-analyzer .
 
 # Run the container
 docker run -p 3000:3000 \
-  -e DATABASE_URL=your_database_url \
   -e GEMINI_API_KEY=your_api_key \
   whatsapp-chat-analyzer
 ```
@@ -194,7 +191,6 @@ npm run type-check
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `GEMINI_API_KEY` | Google Gemini API key | Yes |
 | `NEXTJS_URL` | Application URL | No |
 | `LOG_LEVEL` | Logging level (error, warn, info, debug) | No |
@@ -212,15 +208,12 @@ npm run type-check
 
 ### Common Issues
 
-1. **Database Connection Failed**
-   - Check your DATABASE_URL format
-   - Ensure database is accessible
-   - Verify SSL settings
-
-2. **API Key Issues**
+1. **API Key Issues**
    - Verify your Gemini API key is valid
    - Check API quotas and limits
    - Ensure proper permissions
+
+2. **File Upload Issues**
 
 3. **File Upload Issues**
    - Check file size (max 100MB)
@@ -249,7 +242,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [Google Gemini](https://ai.google.dev/) for AI analysis capabilities
-- [Neon](https://neon.tech/) for PostgreSQL database
 - [Vercel](https://vercel.com/) for hosting and deployment
 - [Next.js](https://nextjs.org/) for the React framework
 - [Tailwind CSS](https://tailwindcss.com/) for styling

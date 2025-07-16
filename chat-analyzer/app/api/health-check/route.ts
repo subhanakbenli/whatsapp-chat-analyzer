@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { testConnection } from '@/lib/database/connection';
 
 export async function GET() {
   try {
@@ -10,25 +9,16 @@ export async function GET() {
       environment: process.env.NODE_ENV || 'development',
       services: {
         api: 'healthy',
-        database: 'checking',
         gemini: 'checking'
       }
     };
-
-    // Test database connection
-    try {
-      await testConnection();
-      healthStatus.services.database = 'healthy';
-    } catch (error) {
-      healthStatus.services.database = 'unhealthy';
-      healthStatus.status = 'degraded';
-    }
 
     // Test Gemini API availability
     try {
       const hasGeminiKey = !!process.env.GEMINI_API_KEY;
       healthStatus.services.gemini = hasGeminiKey ? 'healthy' : 'configured';
     } catch (error) {
+      console.error('Gemini API check failed:', error);
       healthStatus.services.gemini = 'unhealthy';
       healthStatus.status = 'degraded';
     }

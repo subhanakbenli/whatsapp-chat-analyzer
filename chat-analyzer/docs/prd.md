@@ -12,20 +12,13 @@ This document outlines the Minimum Viable Product (MVP) for a web application de
 
 * **Framework:** Next.js
 * **Hosting Platform:** Vercel
-* **Database:** Vercel Postgres
 * **Visualization Library:** Chart.js (using the `react-chartjs-2` wrapper)
 * **Report Generation:** jsPDF & html2canvas
 * **AI Engine:** Google Gemini API
 
-### **2. Database Schema**
+### **2. Data Storage**
 
-**Table:** `Analyses`
-
-| Column Name     | Type                      | Description                                                  |
-| :-------------- | :------------------------ | :----------------------------------------------------------- |
-| `id`            | `UUID`                    | Primary Key. A unique identifier for each analysis job.      |
-| `analysis_json` | `JSONB`                   | Stores the final, aggregated JSON result from the Gemini API.|
-| `created_at`    | `Timestamp with time zone`| The timestamp when the analysis record was created (`DEFAULT NOW()`). |
+**No Database Required:** All data is processed in memory and analysis results are returned directly to the client. No persistent storage is used, making the application completely stateless and privacy-focused.
 
 ### **3. User Flow**
 
@@ -49,13 +42,12 @@ The core logic resides in the `app/api/analyze/route.js` serverless function.
     * When a break is found, finalize the current chunk and start a new one.
 4.  Send each chunk to the Gemini API using the predefined JSON prompt.
 5.  Aggregate the JSON responses from all chunks into a single, final JSON object.
-6.  Save the final JSON to the Vercel Postgres database.
-7.  Return the final JSON to the frontend.
+6.  Return the final JSON directly to the frontend for immediate display.
 
 ### **5. Key Features**
 
 * AI-Powered Analysis via Gemini.
 * Interactive Dashboard with charts and stats.
 * Smart Chunking for high accuracy.
-* Privacy-focused data handling.
+* Privacy-focused data handling (no persistent storage).
 * Downloadable PDF/HTML reports.

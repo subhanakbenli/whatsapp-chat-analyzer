@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Server external packages
-  serverExternalPackages: ['pg', '@neondatabase/serverless'],
-  
   // Image optimization
   images: {
     domains: ['localhost'],

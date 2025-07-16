@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createAnalysis } from '@/lib/database/queries';
-import { createTables } from '@/lib/database/migrations';
 import { ChatParser } from '@/lib/parsers/chatParser';
 import { SmartChunking } from '@/lib/processing/smartChunking';
 import { GeminiClient } from '@/lib/ai/geminiClient';
@@ -10,9 +8,6 @@ import progressTracker from '@/lib/processing/progressTracker';
 
 export async function POST(request: NextRequest) {
   try {
-    // Initialize database
-    await createTables();
-
     // Parse form data
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -31,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create progress tracking session
-    const sessionId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `analysis_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     progressTracker.createSession(sessionId, 6);
 
     // Start processing
@@ -108,37 +103,30 @@ export async function POST(request: NextRequest) {
     
     progressTracker.completeStep(sessionId, 'aggregating_results');
 
-    // Save to database
-    progressTracker.updateStep(sessionId, 'saving_results', 0, 'in_progress');
+    // Prepare final results - no database save needed
+    progressTracker.updateStep(sessionId, 'preparing_results', 0, 'in_progress');
     
-    const analysisData = {
-      analysis: {
-        ...aggregatedAnalysis,
-        originalData: {
-          messages: parsedData.messages,
-          participants: parsedData.participants,
-          metadata: parsedData.metadata
-        },
-        processingInfo: {
-          sessionId,
-          chunks: chunks.length,
-          processingTime: Date.now() - (progressTracker.getSession(sessionId)?.startTime || 0)
-        }
+    const finalAnalysis = {
+      ...aggregatedAnalysis,
+      originalData: {
+        messages: parsedData.messages,
+        participants: parsedData.participants,
+        metadata: parsedData.metadata
       },
-      fileName: file.name,
-      fileSize: file.size,
-      status: 'completed'
+      processingInfo: {
+        sessionId,
+        chunks: chunks.length,
+        processingTime: Date.now() - (progressTracker.getSession(sessionId)?.startTime || 0)
+      }
     };
 
-    const result = await createAnalysis(analysisData);
-    
-    progressTracker.completeStep(sessionId, 'saving_results', { analysisId: result.id });
-    progressTracker.completeSession(sessionId, { analysisId: result.id });
+    progressTracker.completeStep(sessionId, 'preparing_results');
+    progressTracker.completeSession(sessionId, { analysis: finalAnalysis });
 
     return NextResponse.json({
       success: true,
-      analysisId: result.id,
       sessionId,
+      analysis: finalAnalysis,
       stats: {
         messageCount: parsedData.messages.length,
         participantCount: parsedData.participants.length,
