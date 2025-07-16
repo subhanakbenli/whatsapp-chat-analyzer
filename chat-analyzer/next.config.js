@@ -75,7 +75,7 @@ const nextConfig = {
   },
   
   // Output configuration for deployment
-  output: 'standalone',
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   
   // Performance optimizations
   compress: true,
