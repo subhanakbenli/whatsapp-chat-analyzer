@@ -55,6 +55,21 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
     );
   }
 
+  // Safely get overall sentiment
+  const overallSentiment = typeof data.overall === 'string' ? data.overall : 'neutral';
+  
+  // Get background color for overall sentiment
+  const getOverallSentimentBg = () => {
+    switch (overallSentiment) {
+      case 'positive':
+        return 'bg-green-100 dark:bg-green-900/20';
+      case 'negative':
+        return 'bg-red-100 dark:bg-red-900/20';
+      default:
+        return 'bg-gray-100 dark:bg-gray-900/20';
+    }
+  };
+
   const { positive, negative, neutral } = data.distribution;
   const total = positive + negative + neutral;
 
@@ -102,8 +117,9 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
     cutout: '60%',
   };
 
-  const getSentimentColor = (sentiment: string) => {
-    switch (sentiment.toLowerCase()) {
+  const getSentimentColor = (sentiment: unknown) => {
+    const sentimentStr = typeof sentiment === 'string' ? sentiment : 'neutral';
+    switch (sentimentStr.toLowerCase()) {
       case 'positive':
         return 'text-green-600 dark:text-green-400';
       case 'negative':
@@ -113,8 +129,9 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
     }
   };
 
-  const getSentimentIcon = (sentiment: string) => {
-    switch (sentiment.toLowerCase()) {
+  const getSentimentIcon = (sentiment: unknown) => {
+    const sentimentStr = typeof sentiment === 'string' ? sentiment : 'neutral';
+    switch (sentimentStr.toLowerCase()) {
       case 'positive':
         return (
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -141,17 +158,15 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
       {/* Overall Sentiment Summary */}
       <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
         <div className="flex items-center space-x-3">
-          <div className={`p-2 rounded-full ${data.overall === 'positive' ? 'bg-green-100 dark:bg-green-900/20' : 
-                                               data.overall === 'negative' ? 'bg-red-100 dark:bg-red-900/20' : 
-                                               'bg-gray-100 dark:bg-gray-900/20'}`}>
-            <div className={getSentimentColor(data.overall)}>
-              {getSentimentIcon(data.overall)}
+          <div className={`p-2 rounded-full ${getOverallSentimentBg()}`}>
+            <div className={getSentimentColor(overallSentiment)}>
+              {getSentimentIcon(overallSentiment)}
             </div>
           </div>
           <div>
             <p className="text-sm text-gray-600 dark:text-gray-300">Overall Sentiment</p>
-            <p className={`text-lg font-semibold capitalize ${getSentimentColor(data.overall)}`}>
-              {data.overall}
+            <p className={`text-lg font-semibold capitalize ${getSentimentColor(overallSentiment)}`}>
+              {overallSentiment}
             </p>
           </div>
         </div>
@@ -177,21 +192,24 @@ export function SentimentAnalysisChart({ data }: SentimentAnalysisChartProps) {
             Individual Participant Sentiments
           </h4>
           <div className="space-y-2">
-            {Object.entries(data.participantSentiments).map(([participant, sentiment]) => (
-              <div key={participant} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                  {participant}
-                </span>
-                <div className="flex items-center space-x-2">
-                  <div className={getSentimentColor(sentiment)}>
-                    {getSentimentIcon(sentiment)}
-                  </div>
-                  <span className={`text-sm font-medium capitalize ${getSentimentColor(sentiment)}`}>
-                    {sentiment}
+            {Object.entries(data.participantSentiments).map(([participant, sentiment]) => {
+              const sentimentStr = typeof sentiment === 'string' ? sentiment : 'neutral';
+              return (
+                <div key={participant} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                    {participant}
                   </span>
+                  <div className="flex items-center space-x-2">
+                    <div className={getSentimentColor(sentiment)}>
+                      {getSentimentIcon(sentiment)}
+                    </div>
+                    <span className={`text-sm font-medium capitalize ${getSentimentColor(sentiment)}`}>
+                      {sentimentStr}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

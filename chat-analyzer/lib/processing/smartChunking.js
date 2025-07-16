@@ -95,18 +95,18 @@ export class SmartChunking {
     return this.optimizeChunks(chunks);
   }
 
-  shouldBreakChunk(newSize, timeSinceLastMessage, currentChunkLength, totalFileSize) {
-    // Size-based break
+  shouldBreakChunk(newSize, timeSinceLastMessage, currentChunkLength, currentSize) {
+    // Size-based break - only break if we exceed maxChunkSize
     if (newSize > this.maxChunkSize) {
       return true;
     }
 
-    // Time-based break (conversation boundary) - only for large files
-    if (totalFileSize > this.minFileSizeForTimeBasedChunking && timeSinceLastMessage > this.conversationBreakHours) {
+    // Time-based break - only if we have at least minChunkSize
+    if (currentSize >= this.minChunkSize && timeSinceLastMessage > this.conversationBreakHours) {
       return true;
     }
 
-    // Prevent extremely large chunks
+    // Prevent extremely large chunks by message count
     return currentChunkLength > 10000;
   }
 
@@ -176,11 +176,12 @@ export class SmartChunking {
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
       
-      // Merge very small chunks with adjacent ones
+      // For large files, merge small chunks with adjacent ones to reach minimum size
       if (chunk.size < this.minChunkSize && i < chunks.length - 1) {
         const nextChunk = chunks[i + 1];
         if (chunk.size + nextChunk.size <= this.maxChunkSize) {
           const mergedChunk = this.mergeChunks(chunk, nextChunk, optimized.length);
+          console.log(`Merged chunk ${chunk.id} (${chunk.size} bytes) with ${nextChunk.id} (${nextChunk.size} bytes) = ${mergedChunk.size} bytes`);
           optimized.push(mergedChunk);
           i++; // Skip next chunk as it's been merged
           continue;
@@ -191,6 +192,11 @@ export class SmartChunking {
       chunk.id = `chunk_${optimized.length}`;
       optimized.push(chunk);
     }
+
+    console.log(`Chunk optimization complete. Final chunks: ${optimized.length}`);
+    optimized.forEach(chunk => {
+      console.log(`- ${chunk.id}: ${chunk.messageCount} messages, ${chunk.size} bytes (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`);
+    });
 
     return optimized;
   }

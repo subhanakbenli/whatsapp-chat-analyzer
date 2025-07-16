@@ -20,11 +20,23 @@ export function ActivityHeatmap({ data, dateRange, selectedParticipants }: Activ
   const heatmapData = useMemo(() => {
     // Filter messages based on date range and selected participants
     const filteredMessages = data.filter(message => {
-      const messageDate = new Date(message.timestamp);
-      const inDateRange = (!dateRange.start || messageDate >= dateRange.start) && 
-                         (!dateRange.end || messageDate <= dateRange.end);
-      const participantSelected = selectedParticipants.includes(message.sender);
-      return inDateRange && participantSelected && message.type === 'message';
+      try {
+        const messageDate = new Date(message.timestamp);
+        
+        // Check if the date is valid
+        if (isNaN(messageDate.getTime())) {
+          console.warn('Invalid timestamp found in ActivityHeatmap:', message.timestamp);
+          return false;
+        }
+        
+        const inDateRange = (!dateRange.start || messageDate >= dateRange.start) && 
+                           (!dateRange.end || messageDate <= dateRange.end);
+        const participantSelected = selectedParticipants.includes(message.sender);
+        return inDateRange && participantSelected && message.type === 'message';
+      } catch (error) {
+        console.error('Error processing message timestamp in ActivityHeatmap:', error, message);
+        return false;
+      }
     });
 
     // Create a 7x24 grid (days of week x hours)
@@ -32,10 +44,22 @@ export function ActivityHeatmap({ data, dateRange, selectedParticipants }: Activ
     
     // Count messages for each day/hour combination
     filteredMessages.forEach(message => {
-      const date = new Date(message.timestamp);
-      const dayOfWeek = getDay(date); // 0 = Sunday, 1 = Monday, etc.
-      const hour = getHours(date);
-      grid[dayOfWeek][hour]++;
+      try {
+        const date = new Date(message.timestamp);
+        if (isNaN(date.getTime())) {
+          return; // Skip invalid dates
+        }
+        
+        const dayOfWeek = getDay(date); // 0 = Sunday, 1 = Monday, etc.
+        const hour = getHours(date);
+        
+        // Ensure valid indices
+        if (dayOfWeek >= 0 && dayOfWeek < 7 && hour >= 0 && hour < 24) {
+          grid[dayOfWeek][hour]++;
+        }
+      } catch (error) {
+        console.error('Error processing message in ActivityHeatmap:', error, message);
+      }
     });
 
     return grid;

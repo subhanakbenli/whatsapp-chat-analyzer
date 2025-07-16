@@ -4,12 +4,14 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useRouter } from 'next/navigation';
 import { ProcessingState } from './ProcessingState';
+import { useI18n } from '@/lib/i18n/I18nProvider';
 
 export function FileUpload() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processingSessionId, setProcessingSessionId] = useState<string | null>(null);
   const router = useRouter();
+  const { locale } = useI18n();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -23,11 +25,11 @@ export function FileUpload() {
       try {
         // Validate file
         if (!file.name.endsWith('.txt')) {
-          throw new Error('Please upload a .txt file exported from WhatsApp');
+          throw new Error(locale.invalidFile);
         }
 
         if (file.size > 100 * 1024 * 1024) { // 100MB limit
-          throw new Error('File size must be less than 100MB');
+          throw new Error(locale.fileTooLarge);
         }
 
         // Read file content
@@ -35,7 +37,7 @@ export function FileUpload() {
         
         // Basic validation
         if (!text.includes(':') || text.length < 100) {
-          throw new Error('This doesn\'t appear to be a valid WhatsApp chat export');
+          throw new Error(locale.fileEmpty);
         }
 
         // Create FormData and upload
@@ -117,7 +119,7 @@ export function FileUpload() {
           <div className="flex flex-col items-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
             <p className="text-gray-600 dark:text-gray-300">
-              Analyzing your chat...
+              {locale.loading}
             </p>
           </div>
         ) : (
@@ -130,13 +132,13 @@ export function FileUpload() {
             
             <div>
               <p className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                {isDragActive ? 'Drop your chat file here' : 'Upload your WhatsApp chat export'}
+                {locale.dragAndDrop}
               </p>
               <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Drag and drop your .txt file here, or click to browse
+                {locale.dragAndDrop} {locale.or} {locale.browse}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Maximum file size: 100MB
+                {locale.maxSize}
               </p>
             </div>
             
@@ -144,7 +146,7 @@ export function FileUpload() {
               type="button"
               className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-colors"
             >
-              Choose File
+              {locale.browse}
             </button>
           </div>
         )}
@@ -163,7 +165,7 @@ export function FileUpload() {
 
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          Don't have a WhatsApp chat export? 
+          {locale.supportedFormats}
         </p>
         <button
           type="button"
@@ -173,7 +175,7 @@ export function FileUpload() {
           }}
           className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
         >
-          Learn how to export your chats
+          {locale.howItWorks}
         </button>
       </div>
     </div>

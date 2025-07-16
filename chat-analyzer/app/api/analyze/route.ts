@@ -93,9 +93,10 @@ ${content.substring(0, 1000)}
     progressTracker.updateStep(sessionId, 'chunking_messages', 0, 'in_progress');
     
     const chunker = new SmartChunking({
-      maxChunkSize: 3 * 1024 * 1024, // 3MB
-      conversationBreakHours: 168, // 1 week instead of 4 hours
-      minFileSizeForTimeBasedChunking: 1024 * 1024 // 1MB minimum for time-based chunking
+      maxChunkSize: 3 * 1024 * 1024, // 3MB maximum chunk size
+      minChunkSize: 2.5 * 1024 * 1024, // 2.5MB minimum chunk size
+      fileChunkingThreshold: 3 * 1024 * 1024, // Only chunk files larger than 3MB
+      conversationBreakHours: 168 // 1 week for time-based breaks
     });
 
     const chunks = await chunker.chunkMessages(parsedData.messages, (progress: any) => {
@@ -129,7 +130,7 @@ ${content.substring(0, 1000)}
       console.log('Gemini API connection successful');
     } catch (testError) {
       console.error('Gemini API connection test failed:', testError);
-      throw new Error(`Failed to connect to Gemini API: ${testError.message}`);
+      throw new Error(`Failed to connect to Gemini API: ${testError instanceof Error ? testError.message : testError}`);
     }
     
     const aggregator = new ResponseAggregator();
@@ -147,7 +148,7 @@ ${content.substring(0, 1000)}
         console.error(`Error analyzing chunk ${chunk.id}:`, error);
         
         // Special handling for overload errors
-        if (error.message.includes('overloaded') || error.message.includes('Service Unavailable')) {
+        if (error instanceof Error && (error.message.includes('overloaded') || error.message.includes('Service Unavailable'))) {
           progressTracker.addWarning(sessionId, 'ai_analysis', 
             `Gemini API is temporarily overloaded. Chunk ${chunk.id} analysis skipped. This is a temporary issue with Google's servers.`);
         } else {
@@ -210,17 +211,18 @@ ${content.substring(0, 1000)}
       error: 'Analysis failed',
       details: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString(),
-      step: 'unknown'
+      step: 'unknown',
+      suggestion: ''
     };
     
     // Try to determine which step failed
-    if (error.message.includes('parse') || error.message.includes('extract')) {
+    if (error instanceof Error && (error.message.includes('parse') || error.message.includes('extract'))) {
       errorResponse.step = 'parsing';
       errorResponse.suggestion = 'Please check that your file is a valid WhatsApp chat export in .txt format';
-    } else if (error.message.includes('chunk')) {
+    } else if (error instanceof Error && error.message.includes('chunk')) {
       errorResponse.step = 'chunking';
       errorResponse.suggestion = 'Try using a smaller file or different format';
-    } else if (error.message.includes('API') || error.message.includes('Gemini')) {
+    } else if (error instanceof Error && (error.message.includes('API') || error.message.includes('Gemini'))) {
       errorResponse.step = 'ai_analysis';
       errorResponse.suggestion = 'AI service may be temporarily unavailable. Please try again later';
     }
@@ -237,10 +239,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
   }
 
+  const session = progressTracker.getSession(sessionId);
+  
+  if (!session) {
+    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+  }
+
   const progress = progressTracker.getSessionProgress(sessionId);
   
-  if (!progress) {
-    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+  // If session is completed, include the result
+  if (session.status === 'completed' && session.result) {
+    return NextResponse.json({
+      ...progress,
+      result: session.result
+    });
   }
 
   return NextResponse.json(progress);

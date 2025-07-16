@@ -1,9 +1,15 @@
+'use client';
+
 import { FileUpload } from "@/components/upload/FileUpload";
 import { HowItWorks } from "@/components/ui/HowItWorks";
 import { Features } from "@/components/ui/Features";
 import { Privacy } from "@/components/ui/Privacy";
+import LanguageSelector from "@/components/ui/LanguageSelector";
+import { useI18n } from "@/lib/i18n/I18nProvider";
 
 export default function Home() {
+  const { locale } = useI18n();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
@@ -14,20 +20,23 @@ export default function Home() {
               <span className="text-white font-bold text-sm">WA</span>
             </div>
             <span className="text-xl font-bold text-gray-900 dark:text-white">
-              WhatsApp Chat Analyzer
+              {locale.title}
             </span>
           </div>
-          <nav className="hidden md:flex space-x-8">
-            <a href="#features" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-              Features
-            </a>
-            <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-              How It Works
-            </a>
-            <a href="#privacy" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
-              Privacy
-            </a>
-          </nav>
+          <div className="flex items-center space-x-6">
+            <nav className="hidden md:flex space-x-8">
+              <a href="#features" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                {locale.features}
+              </a>
+              <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                {locale.howItWorks}
+              </a>
+              <a href="#privacy" className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                {locale.privacy}
+              </a>
+            </nav>
+            <LanguageSelector />
+          </div>
         </div>
       </header>
 
@@ -35,14 +44,10 @@ export default function Home() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
-            Unlock the Insights Hidden in Your{" "}
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              WhatsApp Chats
-            </span>
+            {locale.title}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
-            AI-powered analysis of your WhatsApp chat exports. Discover conversation patterns, 
-            sentiment trends, and communication insights with advanced analytics.
+            {locale.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
@@ -88,25 +93,24 @@ export default function Home() {
             <div className="flex items-center justify-center space-x-2 mb-4">
               <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-xs">WA</span>
-              </div>
-              <span className="text-lg font-bold text-gray-900 dark:text-white">
-                WhatsApp Chat Analyzer
-              </span>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Discover the hidden patterns in your conversations with AI-powered analysis
-            </p>
-            <div className="flex justify-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
-              <a href="#privacy" className="hover:text-gray-900 dark:hover:text-white">
-                Privacy Policy
-              </a>
-              <a href="#terms" className="hover:text-gray-900 dark:hover:text-white">
-                Terms of Service
-              </a>
-              <a href="#support" className="hover:text-gray-900 dark:hover:text-white">
-                Support
-              </a>
-            </div>
+              </div>            <span className="text-lg font-bold text-gray-900 dark:text-white">
+              {locale.title}
+            </span>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
+            {locale.subtitle}
+          </p>
+          <div className="flex justify-center space-x-6 text-sm text-gray-500 dark:text-gray-400">
+            <a href="#privacy" className="hover:text-gray-900 dark:hover:text-white">
+              {locale.privacy}
+            </a>
+            <a href="#terms" className="hover:text-gray-900 dark:hover:text-white">
+              Terms of Service
+            </a>
+            <a href="#support" className="hover:text-gray-900 dark:hover:text-white">
+              Support
+            </a>
+          </div>
           </div>
         </div>
       </footer>

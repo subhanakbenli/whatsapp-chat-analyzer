@@ -45,26 +45,48 @@ export function MessageTimelineChart({ data, dateRange, selectedParticipants }: 
 
   // Filter messages based on date range and selected participants
   const filteredMessages = data.filter(message => {
-    const messageDate = new Date(message.timestamp);
-    const inDateRange = (!dateRange.start || messageDate >= dateRange.start) && 
-                       (!dateRange.end || messageDate <= dateRange.end);
-    const participantSelected = selectedParticipants.includes(message.sender);
-    return inDateRange && participantSelected && message.type === 'message';
+    try {
+      const messageDate = new Date(message.timestamp);
+      
+      // Check if the date is valid
+      if (isNaN(messageDate.getTime())) {
+        console.warn('Invalid timestamp found:', message.timestamp);
+        return false;
+      }
+      
+      const inDateRange = (!dateRange.start || messageDate >= dateRange.start) && 
+                         (!dateRange.end || messageDate <= dateRange.end);
+      const participantSelected = selectedParticipants.includes(message.sender);
+      return inDateRange && participantSelected && message.type === 'message';
+    } catch (error) {
+      console.error('Error processing message timestamp:', error, message);
+      return false;
+    }
   });
 
   // Group messages by day
   const messagesByDay = filteredMessages.reduce((acc, message) => {
-    const date = format(new Date(message.timestamp), 'yyyy-MM-dd');
-    if (!acc[date]) {
-      acc[date] = { total: 0, participants: {} };
+    try {
+      const messageDate = new Date(message.timestamp);
+      if (isNaN(messageDate.getTime())) {
+        return acc; // Skip invalid dates
+      }
+      
+      const date = format(messageDate, 'yyyy-MM-dd');
+      if (!acc[date]) {
+        acc[date] = { total: 0, participants: {} };
+      }
+      acc[date].total++;
+      acc[date].participants[message.sender] = (acc[date].participants[message.sender] || 0) + 1;
+      return acc;
+    } catch (error) {
+      console.error('Error grouping message by date:', error, message);
+      return acc;
     }
-    acc[date].total++;
-    acc[date].participants[message.sender] = (acc[date].participants[message.sender] || 0) + 1;
-    return acc;
   }, {} as Record<string, { total: number; participants: Record<string, number> }>);
 
   // Sort dates and prepare chart data
-  const sortedDates = Object.keys(messagesByDay).sort();
+  const sortedDates = Object.keys(messagesByDay).sort((a, b) => a.localeCompare(b));
   const chartData = {
     labels: sortedDates,
     datasets: [
@@ -117,7 +139,20 @@ export function MessageTimelineChart({ data, dateRange, selectedParticipants }: 
         intersect: false,
         callbacks: {
           title: function(context: any) {
-            return format(new Date(context[0].label), 'MMM dd, yyyy');
+            try {
+              const dateStr = context[0]?.label;
+              if (!dateStr) return 'Invalid Date';
+              
+              const date = new Date(dateStr);
+              if (isNaN(date.getTime())) {
+                return dateStr; // Return original string if date is invalid
+              }
+              
+              return format(date, 'MMM dd, yyyy');
+            } catch (error) {
+              console.error('Error formatting date in tooltip:', error);
+              return context[0]?.label || 'Invalid Date';
+            }
           },
           label: function(context: any) {
             return `${context.dataset.label}: ${context.parsed.y} messages`;

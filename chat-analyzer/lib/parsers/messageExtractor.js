@@ -60,7 +60,7 @@ export function extractMessages(chatContent) {
             content: match[3],
             sender: 'System'
           };
-          console.log(`System message found: ${match[3].substring(0, 50)}...`);
+          
         } else {
           // Regular message
           currentMessage = {
@@ -69,7 +69,7 @@ export function extractMessages(chatContent) {
             sender: match[3].trim(),
             content: match[4].trim()
           };
-          console.log(`Message found from ${match[3].trim()}: ${match[4].trim().substring(0, 30)}...`);
+          
         }
         
         matched = true;
