@@ -38,27 +38,43 @@ export default function DashboardPage() {
 
   const fetchAnalysis = async () => {
     try {
-      const response = await fetch(`/api/analysis/${analysisId}`);
+      // First, check if we have a completed analysis
+      const response = await fetch(`/api/analyze?sessionId=${analysisId}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch analysis');
       }
       
       const result = await response.json();
-      setData(result);
       
-      // Initialize filters
-      const participants = Object.keys(result.analysis_json.participants || {});
-      setSelectedParticipants(participants);
-      
-      // Set date range from analysis
-      const originalData = result.analysis_json.originalData;
-      if (originalData?.messages?.length > 0) {
-        const messages = originalData.messages;
-        setDateRange({
-          start: new Date(messages[0].timestamp),
-          end: new Date(messages[messages.length - 1].timestamp)
-        });
+      // Check if the analysis is completed
+      if (result.status === 'completed' && result.result?.analysis) {
+        // Convert to expected format
+        const analysisData = {
+          id: analysisId,
+          analysis_json: result.result.analysis,
+          file_name: result.result.analysis.originalData?.metadata?.fileName || 'Unknown',
+          file_size: result.result.analysis.originalData?.metadata?.estimatedSize || 0,
+          created_at: result.result.analysis.originalData?.metadata?.parseDate || new Date().toISOString()
+        };
+        setData(analysisData);
+        
+        // Initialize filters
+        const participants = Object.keys(result.result.analysis.participants || {});
+        setSelectedParticipants(participants);
+        
+        // Set date range from analysis
+        const originalData = result.result.analysis.originalData;
+        if (originalData?.messages?.length > 0) {
+          const messages = originalData.messages;
+          setDateRange({
+            start: new Date(messages[0].timestamp),
+            end: new Date(messages[messages.length - 1].timestamp)
+          });
+        }
+      } else {
+        // Analysis is still in progress or failed
+        setError('Analysis is still in progress or failed. Please try again.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load analysis');

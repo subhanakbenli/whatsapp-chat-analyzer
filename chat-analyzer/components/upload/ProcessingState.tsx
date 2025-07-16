@@ -43,7 +43,7 @@ export function ProcessingState({ sessionId, onComplete, onError }: ProcessingSt
 
     const pollProgress = async () => {
       try {
-        const response = await fetch(`/api/progress/${sessionId}`);
+        const response = await fetch(`/api/analyze?sessionId=${sessionId}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch progress');
@@ -54,12 +54,7 @@ export function ProcessingState({ sessionId, onComplete, onError }: ProcessingSt
 
         if (data.status === 'completed') {
           setIsPolling(false);
-          // Extract analysis ID from the last step's result
-          const lastStep = data.steps[data.steps.length - 1];
-          const analysisId = lastStep?.result?.analysisId;
-          if (analysisId) {
-            onComplete(analysisId);
-          }
+          onComplete(sessionId);
         } else if (data.status === 'failed') {
           setIsPolling(false);
           const errorMessage = data.errors.length > 0 

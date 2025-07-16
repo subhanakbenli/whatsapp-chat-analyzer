@@ -3,61 +3,70 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useRouter } from 'next/navigation';
+import { ProcessingState } from './ProcessingState';
 
 export function FileUpload() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [processingSessionId, setProcessingSessionId] = useState<string | null>(null);
   const router = useRouter();
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
 
     const file = acceptedFiles[0];
     setUploading(true);
     setError(null);
 
-    try {
-      // Validate file
-      if (!file.name.endsWith('.txt')) {
-        throw new Error('Please upload a .txt file exported from WhatsApp');
+    // Run upload in background
+    (async () => {
+      try {
+        // Validate file
+        if (!file.name.endsWith('.txt')) {
+          throw new Error('Please upload a .txt file exported from WhatsApp');
+        }
+
+        if (file.size > 100 * 1024 * 1024) { // 100MB limit
+          throw new Error('File size must be less than 100MB');
+        }
+
+        // Read file content
+        const text = await file.text();
+        
+        // Basic validation
+        if (!text.includes(':') || text.length < 100) {
+          throw new Error('This doesn\'t appear to be a valid WhatsApp chat export');
+        }
+
+        // Create FormData and upload
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Upload failed');
+        }
+
+        const result = await response.json();
+        
+        // Check if analysis was successful
+        if (result.success && result.sessionId) {
+          setProcessingSessionId(result.sessionId);
+          setUploading(false);
+        } else {
+          throw new Error(result.error || 'Analysis failed');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Upload failed');
+        setUploading(false);
       }
-
-      if (file.size > 100 * 1024 * 1024) { // 100MB limit
-        throw new Error('File size must be less than 100MB');
-      }
-
-      // Read file content
-      const text = await file.text();
-      
-      // Basic validation
-      if (!text.includes(':') || text.length < 100) {
-        throw new Error('This doesn\'t appear to be a valid WhatsApp chat export');
-      }
-
-      // Create FormData and upload
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      const result = await response.json();
-      
-      // Redirect to dashboard
-      router.push(`/dashboard/${result.analysisId}`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  }, [router]);
+    })();
+  }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -65,8 +74,29 @@ export function FileUpload() {
       'text/plain': ['.txt']
     },
     maxFiles: 1,
-    disabled: uploading
+    disabled: uploading || processingSessionId !== null
   });
+
+  const handleProcessingComplete = (sessionId: string) => {
+    router.push(`/dashboard/${sessionId}`);
+  };
+
+  const handleProcessingError = (error: string) => {
+    setError(error);
+    setProcessingSessionId(null);
+    setUploading(false);
+  };
+
+  // Show processing state if we have a session ID
+  if (processingSessionId) {
+    return (
+      <ProcessingState
+        sessionId={processingSessionId}
+        onComplete={handleProcessingComplete}
+        onError={handleProcessingError}
+      />
+    );
+  }
 
   return (
     <div className="w-full">
