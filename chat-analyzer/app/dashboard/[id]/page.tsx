@@ -9,7 +9,7 @@ import { ParticipantChart } from '@/components/charts/ParticipantChart';
 import { TopicChart } from '@/components/charts/TopicChart';
 import { ActivityHeatmap } from '@/components/charts/ActivityHeatmap';
 import { FilterPanel } from '@/components/dashboard/FilterPanel';
-import { ExportMenu } from '@/components/dashboard/ExportMenu';
+
 
 interface AnalysisData {
   id: string;
@@ -154,7 +154,6 @@ export default function DashboardPage() {
                 initialDateRange={dateRange}
                 initialParticipants={selectedParticipants}
               />
-              <ExportMenu analysisId={analysisId} />
             </div>
           </div>
         </div>

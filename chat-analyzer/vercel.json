@@ -8,9 +8,6 @@
     },
     "app/api/analysis/[id]/route.ts": {
       "maxDuration": 60
-    },
-    "app/api/export/[id]/route.ts": {
-      "maxDuration": 120
     }
   },
   "env": {

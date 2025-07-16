@@ -298,7 +298,6 @@ export const apiLogger = logger.child('api');
 export const dbLogger = logger.child('database');
 export const analysisLogger = logger.child('analysis');
 export const fileLogger = logger.child('file');
-export const exportLogger = logger.child('export');
 export const uiLogger = logger.child('ui');
 
 // Performance logging helper

@@ -229,51 +229,6 @@ export class Validators {
     };
   }
 
-  static validateExportRequest(request) {
-    const errors = [];
-    
-    if (!request || typeof request !== 'object') {
-      errors.push('Invalid export request');
-      return { valid: false, errors };
-    }
-    
-    // Validate format
-    const supportedFormats = ['json', 'csv', 'pdf', 'html'];
-    if (!request.format || !supportedFormats.includes(request.format)) {
-      errors.push(`Unsupported export format. Supported formats: ${supportedFormats.join(', ')}`);
-    }
-    
-    // Validate analysis ID
-    if (!request.analysisId || typeof request.analysisId !== 'string') {
-      errors.push('Valid analysis ID is required');
-    }
-    
-    // Validate filters if provided
-    if (request.filters) {
-      if (typeof request.filters !== 'object') {
-        errors.push('Filters must be an object');
-      } else {
-        // Validate date range
-        if (request.filters.dateRange) {
-          const { start, end } = request.filters.dateRange;
-          if (start && end && new Date(start) > new Date(end)) {
-            errors.push('Start date must be before end date');
-          }
-        }
-        
-        // Validate participants
-        if (request.filters.participants && !Array.isArray(request.filters.participants)) {
-          errors.push('Participants filter must be an array');
-        }
-      }
-    }
-    
-    return {
-      valid: errors.length === 0,
-      errors
-    };
-  }
-
   static validateSessionId(sessionId) {
     if (!sessionId || typeof sessionId !== 'string') {
       return { valid: false, error: 'Invalid session ID' };

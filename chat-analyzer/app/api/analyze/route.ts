@@ -144,6 +144,12 @@ ${content.substring(0, 1000)}
         processedChunks++;
         progressTracker.updateStep(sessionId, 'ai_analysis', 
           Math.round((processedChunks / chunks.length) * 100), 'in_progress');
+        
+        // Birden fazla chunk varsa ve son chunk değilse 45 saniye bekle
+        if (chunks.length > 1 && processedChunks < chunks.length) {
+          console.log(`Waiting 45 seconds before processing next chunk (${processedChunks + 1}/${chunks.length})`);
+          await new Promise(resolve => setTimeout(resolve, 45000)); // 45 saniye bekle
+        }
       } catch (error) {
         console.error(`Error analyzing chunk ${chunk.id}:`, error);
         
@@ -154,6 +160,12 @@ ${content.substring(0, 1000)}
         } else {
           progressTracker.addWarning(sessionId, 'ai_analysis', 
             `Failed to analyze chunk ${chunk.id}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        // Hata durumunda da bekleme süresini uygula
+        if (chunks.length > 1 && processedChunks < chunks.length) {
+          console.log(`Waiting 45 seconds after error before processing next chunk (${processedChunks + 1}/${chunks.length})`);
+          await new Promise(resolve => setTimeout(resolve, 45000));
         }
       }
     }

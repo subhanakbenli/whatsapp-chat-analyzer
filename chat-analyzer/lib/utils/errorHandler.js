@@ -250,16 +250,6 @@ export class ErrorHandler {
           return 'Analysis service temporarily unavailable. Please try again later.';
         }
         return 'Analysis failed. Please try again.';
-      },
-
-      handleExportError: (error) => {
-        if (error.message.includes('generation')) {
-          return 'Report generation failed. Please try again.';
-        }
-        if (error.message.includes('data')) {
-          return 'Export data not available. Please regenerate the analysis.';
-        }
-        return 'Export failed. Please try again.';
       }
     };
   }
