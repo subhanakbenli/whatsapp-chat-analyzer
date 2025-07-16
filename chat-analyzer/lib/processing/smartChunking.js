@@ -1,8 +1,9 @@
 export class SmartChunking {
   constructor(options = {}) {
     this.maxChunkSize = options.maxChunkSize || 3 * 1024 * 1024; // 3MB default
-    this.conversationBreakHours = options.conversationBreakHours || 4;
-    this.minChunkSize = options.minChunkSize || 1024; // 1KB minimum
+    this.minChunkSize = options.minChunkSize || 2.5 * 1024 * 1024; // 2.5MB minimum chunk size
+    this.fileChunkingThreshold = options.fileChunkingThreshold || 3 * 1024 * 1024; // Only chunk files larger than 3MB
+    this.conversationBreakHours = options.conversationBreakHours || 168; // 1 week default
     this.preserveContext = options.preserveContext !== false;
   }
 
@@ -10,6 +11,29 @@ export class SmartChunking {
     if (!messages || messages.length === 0) {
       throw new Error('No messages to chunk');
     }
+
+    // Calculate total file size first
+    const totalFileSize = messages.reduce((sum, msg) => sum + this.calculateMessageSize(msg), 0);
+    console.log(`Total file size: ${totalFileSize} bytes (${(totalFileSize / 1024 / 1024).toFixed(2)} MB)`);
+
+    // If file is smaller than threshold, return as single chunk
+    if (totalFileSize < this.fileChunkingThreshold) {
+      console.log(`File size is below chunking threshold (${(this.fileChunkingThreshold / 1024 / 1024).toFixed(2)} MB). Creating single chunk.`);
+      
+      // Report progress as complete
+      if (progressCallback) {
+        progressCallback({
+          processed: messages.length,
+          total: messages.length,
+          chunks: 1,
+          currentChunkSize: totalFileSize
+        });
+      }
+
+      return [this.createChunk(messages, 0)];
+    }
+
+    console.log(`File size exceeds threshold. Starting smart chunking...`);
 
     const chunks = [];
     let currentChunk = [];
@@ -27,10 +51,20 @@ export class SmartChunking {
       const shouldBreak = this.shouldBreakChunk(
         currentSize + messageSize,
         timeSinceLastMessage,
-        currentChunk.length
+        currentChunk.length,
+        currentSize
       );
 
       if (shouldBreak && currentChunk.length > 0) {
+        // Log why we're breaking
+        if (currentSize + messageSize > this.maxChunkSize) {
+          console.log(`Breaking chunk due to size: ${currentSize + messageSize} > ${this.maxChunkSize}`);
+        } else if (currentSize >= this.minChunkSize && timeSinceLastMessage > this.conversationBreakHours) {
+          console.log(`Breaking chunk due to time gap: ${timeSinceLastMessage.toFixed(1)} hours > ${this.conversationBreakHours} hours`);
+        } else if (currentChunk.length > 10000) {
+          console.log(`Breaking chunk due to message count: ${currentChunk.length} > 10000`);
+        }
+        
         // Finalize current chunk
         chunks.push(this.createChunk(currentChunk, chunks.length));
         currentChunk = [];
@@ -61,23 +95,19 @@ export class SmartChunking {
     return this.optimizeChunks(chunks);
   }
 
-  shouldBreakChunk(newSize, timeSinceLastMessage, currentChunkLength) {
+  shouldBreakChunk(newSize, timeSinceLastMessage, currentChunkLength, totalFileSize) {
     // Size-based break
     if (newSize > this.maxChunkSize) {
       return true;
     }
 
-    // Time-based break (conversation boundary)
-    if (timeSinceLastMessage > this.conversationBreakHours) {
+    // Time-based break (conversation boundary) - only for large files
+    if (totalFileSize > this.minFileSizeForTimeBasedChunking && timeSinceLastMessage > this.conversationBreakHours) {
       return true;
     }
 
     // Prevent extremely large chunks
-    if (currentChunkLength > 10000) {
-      return true;
-    }
-
-    return false;
+    return currentChunkLength > 10000;
   }
 
   calculateMessageSize(message) {

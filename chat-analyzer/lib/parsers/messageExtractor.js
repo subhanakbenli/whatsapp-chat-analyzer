@@ -1,7 +1,12 @@
 export function extractMessages(chatContent) {
+  console.log('Starting message extraction...');
   const lines = chatContent.split('\n').filter(line => line.trim());
+  console.log(`Total lines to process: ${lines.length}`);
+  
   const messages = [];
   let currentMessage = null;
+  let matchedLines = 0;
+  let systemMessages = 0;
 
   // WhatsApp export patterns for different formats
   const patterns = {
@@ -20,6 +25,9 @@ export function extractMessages(chatContent) {
     // Turkish format: 18.01.2023 20:14 - Sübhan: Hello
     turkish_default: /^(\d{1,2}\.\d{1,2}\.\d{2,4})\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*([^:]+):\s*(.*)$/i,
     
+    // Turkish format with parentheses: 23.09.2023 22:35 - Çağan Çalışkan (İYTE CS): Hello
+    turkish_with_parens: /^(\d{1,2}\.\d{1,2}\.\d{2,4})\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*([^:]+(?:\([^)]+\))?[^:]*?):\s*(.*)$/i,
+    
     // System messages - original format
     system: /^(\d{1,2}\/\d{1,2}\/\d{2,4}),?\s+(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM)?)\s*-\s*(.+)$/i,
     
@@ -27,7 +35,8 @@ export function extractMessages(chatContent) {
     system_turkish: /^(\d{1,2}\.\d{1,2}\.\d{2,4})\s+(\d{1,2}:\d{2}(?::\d{2})?)\s*-\s*(.+)$/i
   };
 
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     let matched = false;
 
     // Try to match different patterns
@@ -40,14 +49,18 @@ export function extractMessages(chatContent) {
           messages.push(currentMessage);
         }
 
+        matchedLines++;
+        
         if (formatName === 'system' || formatName === 'system_turkish') {
           // System message
+          systemMessages++;
           currentMessage = {
             timestamp: parseTimestamp(match[1], match[2]),
             type: 'system',
             content: match[3],
             sender: 'System'
           };
+          console.log(`System message found: ${match[3].substring(0, 50)}...`);
         } else {
           // Regular message
           currentMessage = {
@@ -56,6 +69,7 @@ export function extractMessages(chatContent) {
             sender: match[3].trim(),
             content: match[4].trim()
           };
+          console.log(`Message found from ${match[3].trim()}: ${match[4].trim().substring(0, 30)}...`);
         }
         
         matched = true;
@@ -66,12 +80,27 @@ export function extractMessages(chatContent) {
     // If no pattern matched, it might be a continuation of the previous message
     if (!matched && currentMessage) {
       currentMessage.content += '\n' + line;
+      console.log(`Continuation line added to current message`);
+    } else if (!matched) {
+      console.log(`Unmatched line ${i + 1}: ${line.substring(0, 50)}...`);
     }
   }
 
   // Add the last message
   if (currentMessage) {
     messages.push(currentMessage);
+  }
+
+  console.log(`Extraction complete:
+  - Total lines processed: ${lines.length}
+  - Lines matched: ${matchedLines}
+  - System messages: ${systemMessages}
+  - Total messages extracted: ${messages.length}
+  - Match rate: ${((matchedLines / lines.length) * 100).toFixed(2)}%`);
+  
+  if (messages.length === 0) {
+    console.error('No messages extracted! Check format patterns.');
+    throw new Error('No messages could be extracted from the chat file. Please check the file format.');
   }
 
   return messages.map(msg => ({
