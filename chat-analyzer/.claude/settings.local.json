@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(touch:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }
