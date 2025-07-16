@@ -1,6 +1,6 @@
 'use client';
 
-import { Component, ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
@@ -187,7 +187,7 @@ export function AsyncErrorBoundary({
   children: ReactNode;
   fallback?: (error: Error, retry: () => void) => ReactNode;
 }) {
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = React.useState<Error | null>(null);
 
   const retry = () => {
     setError(null);
