@@ -218,9 +218,9 @@ export class Validators {
     }
     
     // Check if size is too large
-    const MAX_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+    const MAX_CHUNK_SIZE = 2.5 * 1000 * 1000; // 2.5 milyon karakter
     if (chunk.size > MAX_CHUNK_SIZE) {
-      errors.push(`Chunk size (${this.formatFileSize(chunk.size)}) exceeds maximum (${this.formatFileSize(MAX_CHUNK_SIZE)})`);
+      errors.push(`Chunk size (${chunk.size.toLocaleString()} chars) exceeds maximum (${MAX_CHUNK_SIZE.toLocaleString()} chars)`);
     }
     
     return {

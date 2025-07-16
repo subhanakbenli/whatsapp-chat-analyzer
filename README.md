@@ -7,7 +7,7 @@
 - **AI-Powered Analysis**: Uses Google Gemini 2.5 Pro for comprehensive chat analysis
 - **Smart Chunking**: Intelligently breaks down large chat files for optimal processing
 - **Interactive Dashboard**: Beautiful visualizations with Chart.js and Tailwind CSS
-- **Multi-Format Export**: PDF, HTML, CSV, and JSON export options
+- **45-Second Delay**: Automatically waits 45 seconds between chunk processing for optimal API usage
 - **Real-time Progress**: Live progress tracking during analysis
 - **Privacy-First**: No data storage, processing happens in memory and results are temporary
 - **Responsive Design**: Works perfectly on desktop and mobile devices
@@ -60,15 +60,15 @@
 
 1. Visit the application in your browser
 2. Drag and drop or select your chat export file
-3. Wait for the analysis to complete (30-60 seconds typically)
-4. Explore your results in the interactive dashboard
+3. Wait for the analysis to complete (varies based on file size)
+4. If multiple chunks are created, the system automatically waits 45 seconds between each chunk for optimal API usage
+5. Explore your results in the interactive dashboard
 
-### 3. Export Results
+### 3. View Results
 
-- **PDF Report**: Comprehensive analysis report
-- **HTML Report**: Interactive web version
-- **CSV Data**: Raw data for further analysis
-- **JSON**: Complete analysis data
+- **Interactive Dashboard**: View comprehensive analysis results with charts and insights
+- **Real-time Updates**: Watch progress as your chat is being processed
+- **Detailed Analytics**: Get insights into sentiment, topics, and participant behavior
 
 ## 🏗️ Project Structure
 
@@ -87,21 +87,37 @@ whatsapp-chat-analyzer/
 │   └── upload/           # Upload components
 ├── lib/                   # Core libraries
 │   ├── ai/               # AI integration
-│   ├── database/         # Database utilities
+│   ├── i18n/             # Internationalization
 │   ├── parsers/          # Chat parsers
 │   ├── processing/       # Data processing
-│   ├── reports/          # Report generation
 │   └── utils/            # Utility functions
 ├── public/               # Static assets
 └── docs/                 # Documentation
 ```
 
+## ⚙️ Technical Features
+
+### Smart Chunking Algorithm
+- **Automatic File Splitting**: Large files are automatically divided into optimal chunks
+- **Conversation-Aware**: Breaks at natural conversation boundaries (4+ hour gaps)
+- **Size Optimization**: Maintains chunks between 2.5MB and 3MB for optimal API performance
+- **45-Second Delay**: Automatically waits 45 seconds between chunk processing to respect API limits
+
+### Processing Pipeline
+1. **File Upload & Validation**: Validates file format and size
+2. **Chat Parsing**: Extracts messages, timestamps, and participant information
+3. **Smart Chunking**: Intelligently divides large files
+4. **AI Analysis**: Each chunk is analyzed by Google Gemini 2.5 Pro
+5. **Result Aggregation**: Combines all chunk results into final analysis
+6. **Dashboard Display**: Interactive visualization of results
+
 ## 🔒 Security & Privacy
 
-- **No Data Storage**: Chat data is processed and immediately deleted
+- **No Data Storage**: Chat data is processed in memory and immediately deleted
 - **Temporary Processing**: Analysis results are stored temporarily with auto-cleanup
 - **Secure Processing**: All data processing happens server-side with encryption
 - **Privacy-First**: No personal data is logged or stored permanently
+- **API Rate Limiting**: 45-second delays between chunks respect API limits and prevent overload
 
 ## 📊 Analytics Features
 
@@ -198,11 +214,12 @@ npm run type-check
 
 ## 📈 Performance
 
-- **Smart Chunking**: Optimizes large files for efficient processing
+- **Smart Chunking**: Optimizes large files for efficient processing with 45-second delays
 - **Lazy Loading**: Components load only when needed
-- **Caching**: API responses and static assets are cached
+- **Memory Efficient**: No persistent data storage, all processing in memory
 - **Bundle Optimization**: Code splitting and tree shaking
 - **Image Optimization**: Automatic image compression and format selection
+- **API Rate Limiting**: Intelligent delays prevent API overload
 
 ## 🐛 Troubleshooting
 
@@ -219,6 +236,11 @@ npm run type-check
    - Check file size (max 100MB)
    - Ensure .txt format
    - Verify file contains valid WhatsApp export
+
+3. **Processing Issues**
+   - Large files may take longer due to 45-second delays between chunks
+   - Monitor the progress bar for real-time updates
+   - If processing fails, try with a smaller file first
 
 4. **Analysis Failures**
    - Check console for error messages

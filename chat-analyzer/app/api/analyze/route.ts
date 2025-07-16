@@ -5,8 +5,6 @@ import { GeminiClient } from '@/lib/ai/geminiClient';
 import { ResponseAggregator } from '@/lib/ai/responseAggregator';
 import { ANALYSIS_PROMPT } from '@/lib/ai/promptTemplates';
 import progressTracker from '@/lib/processing/progressTracker';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,44 +43,8 @@ export async function POST(request: NextRequest) {
     // Parse chat
     progressTracker.updateStep(sessionId, 'parsing_chat', 0, 'in_progress');
     
-    console.log(`Starting chat parsing for file: ${file.name}`);
-    console.log(`Content length: ${content.length} characters`);
-    console.log(`First 200 characters: ${content.substring(0, 200)}`);
-    
     const chatParser = new ChatParser();
     const parsedData = await chatParser.parse(content, file.name);
-    
-    console.log(`Parsed data summary:
-    - Messages: ${parsedData.messages.length}
-    - Participants: ${parsedData.participants.length}
-    - Date range: ${parsedData.stats.dateRange.start} to ${parsedData.stats.dateRange.end}`);
-
-    // Save parsed content to prompts folder for debugging
-    try {
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const promptFileName = `parsed_content_${timestamp}.txt`;
-      const promptFilePath = join(process.cwd(), 'prompts', promptFileName);
-      
-      const contentToSave = `SESSION: ${sessionId}
-FILE: ${file.name}
-PARSED DATE: ${new Date().toISOString()}
-TOTAL MESSAGES: ${parsedData.messages.length}
-PARTICIPANTS: ${parsedData.participants.map(p => p.name).join(', ')}
-
-=== PARSED MESSAGES ===
-${parsedData.messages.map(msg => 
-  `[${msg.timestamp}] ${msg.sender}: ${msg.content}`
-).join('\n')}
-
-=== RAW CONTENT (First 1000 chars) ===
-${content.substring(0, 1000)}
-`;
-      
-      await writeFile(promptFilePath, contentToSave, 'utf-8');
-      console.log(`Parsed content saved to: ${promptFilePath}`);
-    } catch (saveError) {
-      console.error('Failed to save parsed content:', saveError);
-    }
 
     progressTracker.completeStep(sessionId, 'parsing_chat', {
       messageCount: parsedData.messages.length,
@@ -93,10 +55,10 @@ ${content.substring(0, 1000)}
     progressTracker.updateStep(sessionId, 'chunking_messages', 0, 'in_progress');
     
     const chunker = new SmartChunking({
-      maxChunkSize: 3 * 1024 * 1024, // 3MB maximum chunk size
-      minChunkSize: 2.5 * 1024 * 1024, // 2.5MB minimum chunk size
-      fileChunkingThreshold: 3 * 1024 * 1024, // Only chunk files larger than 3MB
-      conversationBreakHours: 168 // 1 week for time-based breaks
+      maxChunkSize: 2.5 * 1000 * 1000, // 2.5 milyon karakter maksimum
+      minChunkSize: 2.1 * 1000 * 1000, // 2.1 milyon karakter minimum
+      fileChunkingThreshold: 2.5 * 1000 * 1000, // 2.5 milyon karakterden büyük dosyaları böl
+      conversationBreakHours: 5 // 5 saat konuşma arası
     });
 
     const chunks = await chunker.chunkMessages(parsedData.messages, (progress: any) => {
@@ -111,23 +73,19 @@ ${content.substring(0, 1000)}
 
     // AI Analysis
     progressTracker.updateStep(sessionId, 'ai_analysis', 0, 'in_progress');
-    
-    // Check if API key exists
+      // Check if API key exists
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY environment variable is not set. Please configure your API key.');
     }
-    
-    console.log(`Initializing Gemini client with API key: ${process.env.GEMINI_API_KEY.substring(0, 10)}...`);
+
     const geminiClient = new GeminiClient(process.env.GEMINI_API_KEY);
     
     // Test connection first
-    console.log('Testing Gemini API connection...');
     try {
       const connectionTest = await geminiClient.testConnection();
       if (!connectionTest.success) {
         throw new Error(`Gemini API connection failed: ${connectionTest.error}`);
       }
-      console.log('Gemini API connection successful');
     } catch (testError) {
       console.error('Gemini API connection test failed:', testError);
       throw new Error(`Failed to connect to Gemini API: ${testError instanceof Error ? testError.message : testError}`);
@@ -147,7 +105,6 @@ ${content.substring(0, 1000)}
         
         // Birden fazla chunk varsa ve son chunk değilse 45 saniye bekle
         if (chunks.length > 1 && processedChunks < chunks.length) {
-          console.log(`Waiting 45 seconds before processing next chunk (${processedChunks + 1}/${chunks.length})`);
           await new Promise(resolve => setTimeout(resolve, 45000)); // 45 saniye bekle
         }
       } catch (error) {
@@ -164,7 +121,6 @@ ${content.substring(0, 1000)}
         
         // Hata durumunda da bekleme süresini uygula
         if (chunks.length > 1 && processedChunks < chunks.length) {
-          console.log(`Waiting 45 seconds after error before processing next chunk (${processedChunks + 1}/${chunks.length})`);
           await new Promise(resolve => setTimeout(resolve, 45000));
         }
       }

@@ -80,7 +80,6 @@ export function extractMessages(chatContent) {
     // If no pattern matched, it might be a continuation of the previous message
     if (!matched && currentMessage) {
       currentMessage.content += '\n' + line;
-      console.log(`Continuation line added to current message`);
     } else if (!matched) {
       console.log(`Unmatched line ${i + 1}: ${line.substring(0, 50)}...`);
     }

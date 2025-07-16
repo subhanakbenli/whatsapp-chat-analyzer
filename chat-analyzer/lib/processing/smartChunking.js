@@ -1,24 +1,27 @@
 export class SmartChunking {
   constructor(options = {}) {
-    this.maxChunkSize = options.maxChunkSize || 3 * 1024 * 1024; // 3MB default
-    this.minChunkSize = options.minChunkSize || 2.5 * 1024 * 1024; // 2.5MB minimum chunk size
-    this.fileChunkingThreshold = options.fileChunkingThreshold || 3 * 1024 * 1024; // Only chunk files larger than 3MB
-    this.conversationBreakHours = options.conversationBreakHours || 168; // 1 week default
+    // Token tabanlı limitler (yaklaşık 1 token = 4 karakter)
+    this.maxTokens = options.maxTokens || 400000; 
+    this.minTokens = options.minTokens || 300000; 
+    this.maxChunkSize = options.maxChunkSize || this.maxTokens * 3; 
+    this.minChunkSize = options.minChunkSize || this.minTokens * 3; 
+    this.fileChunkingThreshold = options.fileChunkingThreshold || this.maxTokens * 4; // Token limitine göre
+    this.conversationBreakHours = options.conversationBreakHours || 5; // 5 saat konuşma arası
     this.preserveContext = options.preserveContext !== false;
   }
 
   async chunkMessages(messages, progressCallback) {
     if (!messages || messages.length === 0) {
       throw new Error('No messages to chunk');
-    }
-
-    // Calculate total file size first
+    }    // Calculate total file size first (token sayısı tahmini)
     const totalFileSize = messages.reduce((sum, msg) => sum + this.calculateMessageSize(msg), 0);
-    console.log(`Total file size: ${totalFileSize} bytes (${(totalFileSize / 1024 / 1024).toFixed(2)} MB)`);
+    const totalChars = messages.reduce((sum, msg) => sum + this.calculateMessageChars(msg), 0);
+
+    console.log(`Total file tokens (estimated): ${totalFileSize.toLocaleString()}`);
+    console.log(`Total file characters: ${totalChars.toLocaleString()}`);
 
     // If file is smaller than threshold, return as single chunk
-    if (totalFileSize < this.fileChunkingThreshold) {
-      console.log(`File size is below chunking threshold (${(this.fileChunkingThreshold / 1024 / 1024).toFixed(2)} MB). Creating single chunk.`);
+    if (totalFileSize < this.maxTokens) {
       
       // Report progress as complete
       if (progressCallback) {
@@ -29,11 +32,9 @@ export class SmartChunking {
           currentChunkSize: totalFileSize
         });
       }
-
+      
       return [this.createChunk(messages, 0)];
     }
-
-    console.log(`File size exceeds threshold. Starting smart chunking...`);
 
     const chunks = [];
     let currentChunk = [];
@@ -56,15 +57,6 @@ export class SmartChunking {
       );
 
       if (shouldBreak && currentChunk.length > 0) {
-        // Log why we're breaking
-        if (currentSize + messageSize > this.maxChunkSize) {
-          console.log(`Breaking chunk due to size: ${currentSize + messageSize} > ${this.maxChunkSize}`);
-        } else if (currentSize >= this.minChunkSize && timeSinceLastMessage > this.conversationBreakHours) {
-          console.log(`Breaking chunk due to time gap: ${timeSinceLastMessage.toFixed(1)} hours > ${this.conversationBreakHours} hours`);
-        } else if (currentChunk.length > 10000) {
-          console.log(`Breaking chunk due to message count: ${currentChunk.length} > 10000`);
-        }
-        
         // Finalize current chunk
         chunks.push(this.createChunk(currentChunk, chunks.length));
         currentChunk = [];
@@ -96,22 +88,41 @@ export class SmartChunking {
   }
 
   shouldBreakChunk(newSize, timeSinceLastMessage, currentChunkLength, currentSize) {
-    // Size-based break - only break if we exceed maxChunkSize
-    if (newSize > this.maxChunkSize) {
+    // Token tabanlı kırılma - maxTokens'ı geçerse
+    if (newSize > this.maxTokens) {
       return true;
     }
 
-    // Time-based break - only if we have at least minChunkSize
-    if (currentSize >= this.minChunkSize && timeSinceLastMessage > this.conversationBreakHours) {
+    // Zaman tabanlı kırılma - minimum token sayısına ulaştıysa ve 5 saat ara varsa
+    if (currentSize >= this.minTokens && timeSinceLastMessage > this.conversationBreakHours) {
       return true;
     }
 
-    // Prevent extremely large chunks by message count
-    return currentChunkLength > 10000;
+    // Çok büyük chunk'ları önlemek için mesaj sayısı kontrolü
+    return currentChunkLength > 20000; // Token tabanlı olduğu için daha yüksek limit
   }
 
   calculateMessageSize(message) {
-    return JSON.stringify(message).length;
+    // Mesajın karakter sayısını hesapla ve token tahmini yap
+    const content = message.content || '';
+    const sender = message.sender || '';
+    const timestamp = message.timestamp ? new Date(message.timestamp).toISOString() : '';
+    
+    // Toplam karakter sayısı: içerik + gönderen + zaman damgası
+    const totalChars = content.length + sender.length + timestamp.length;
+    
+    // Token tahmini: yaklaşık 1 token = 4 karakter
+    // Güvenlik payı için 3.5 karakter = 1 token olarak hesapla
+    return Math.ceil(totalChars / 3.5);
+  }
+
+  // Karakter sayısını da hesaplamak için yardımcı method
+  calculateMessageChars(message) {
+    const content = message.content || '';
+    const sender = message.sender || '';
+    const timestamp = message.timestamp ? new Date(message.timestamp).toISOString() : '';
+    
+    return content.length + sender.length + timestamp.length;
   }
 
   createChunk(messages, index) {
@@ -177,11 +188,10 @@ export class SmartChunking {
       const chunk = chunks[i];
       
       // For large files, merge small chunks with adjacent ones to reach minimum size
-      if (chunk.size < this.minChunkSize && i < chunks.length - 1) {
+      if (chunk.size < this.minTokens && i < chunks.length - 1) {
         const nextChunk = chunks[i + 1];
-        if (chunk.size + nextChunk.size <= this.maxChunkSize) {
+        if (chunk.size + nextChunk.size <= this.maxTokens) {
           const mergedChunk = this.mergeChunks(chunk, nextChunk, optimized.length);
-          console.log(`Merged chunk ${chunk.id} (${chunk.size} bytes) with ${nextChunk.id} (${nextChunk.size} bytes) = ${mergedChunk.size} bytes`);
           optimized.push(mergedChunk);
           i++; // Skip next chunk as it's been merged
           continue;
@@ -191,13 +201,11 @@ export class SmartChunking {
       // Recalculate chunk ID for optimized array
       chunk.id = `chunk_${optimized.length}`;
       optimized.push(chunk);
-    }
-
+    }    
     console.log(`Chunk optimization complete. Final chunks: ${optimized.length}`);
-    optimized.forEach(chunk => {
-      console.log(`- ${chunk.id}: ${chunk.messageCount} messages, ${chunk.size} bytes (${(chunk.size / 1024 / 1024).toFixed(2)} MB)`);
-    });
-
+    console.log(`Total tokens processed: ${optimized.reduce((sum, chunk) => sum + chunk.size, 0).toLocaleString()}`);
+    console.log(`Total characters processed: ${optimized.reduce((sum, chunk) => sum + this.calculateMessageChars(chunk.messages), 0).toLocaleString()}`);
+    
     return optimized;
   }
 
@@ -240,13 +248,13 @@ export class SmartChunking {
 
     chunks.forEach((chunk, index) => {
       // Check chunk size
-      if (chunk.size > this.maxChunkSize) {
-        validation.errors.push(`Chunk ${index} exceeds maximum size: ${chunk.size} bytes`);
+      if (chunk.size > this.maxTokens) {
+        validation.errors.push(`Chunk ${index} exceeds maximum size: ${chunk.size} tokens`);
         validation.valid = false;
       }
 
-      if (chunk.size < this.minChunkSize) {
-        validation.warnings.push(`Chunk ${index} is below minimum size: ${chunk.size} bytes`);
+      if (chunk.size < this.minTokens) {
+        validation.warnings.push(`Chunk ${index} is below minimum size: ${chunk.size} tokens`);
       }
 
       // Check message count
@@ -256,9 +264,9 @@ export class SmartChunking {
       }
 
       // Size distribution
-      if (chunk.size < this.minChunkSize * 10) {
+      if (chunk.size < this.minTokens * 10) {
         validation.stats.sizeDistribution.small++;
-      } else if (chunk.size < this.maxChunkSize * 0.5) {
+      } else if (chunk.size < this.maxTokens * 0.5) {
         validation.stats.sizeDistribution.medium++;
       } else {
         validation.stats.sizeDistribution.large++;
