@@ -4,7 +4,7 @@
 
 ## 🚀 Features
 
-- **AI-Powered Analysis**: Uses Google Gemini 2.5 Pro for comprehensive chat analysis
+- **AI-Powered Analysis**: Uses Google gemini-2.0-flash-lite for comprehensive chat analysis
 - **Smart Chunking**: Intelligently breaks down large chat files for optimal processing
 - **Interactive Dashboard**: Beautiful visualizations with Chart.js and Tailwind CSS
 - **45-Second Delay**: Automatically waits 45 seconds between chunk processing for optimal API usage
@@ -22,7 +22,7 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/whatsapp-chat-analyzer.git
+   git clone https://github.com/subhanakbenli/whatsapp-chat-analyzer.git
    cd whatsapp-chat-analyzer/chat-analyzer
    ```
 
@@ -92,7 +92,6 @@ whatsapp-chat-analyzer/
 │   ├── processing/       # Data processing
 │   └── utils/            # Utility functions
 ├── public/               # Static assets
-└── docs/                 # Documentation
 ```
 
 ## ⚙️ Technical Features
@@ -144,36 +143,6 @@ whatsapp-chat-analyzer/
 - Communication styles
 - Engagement levels
 - Activity patterns
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-
-1. **Connect your repository to Vercel**
-2. **Add environment variables** in Vercel dashboard
-3. **Deploy** - Vercel will automatically build and deploy
-
-### Docker
-
-```bash
-# Build the Docker image
-docker build -t whatsapp-chat-analyzer .
-
-# Run the container
-docker run -p 3000:3000 \
-  -e GEMINI_API_KEY=your_api_key \
-  whatsapp-chat-analyzer
-```
-
-### Manual Deployment
-
-```bash
-# Build the application
-npm run build
-
-# Start the production server
-npm start
-```
 
 ## 🧪 Testing
 
@@ -231,8 +200,6 @@ npm run type-check
    - Ensure proper permissions
 
 2. **File Upload Issues**
-
-3. **File Upload Issues**
    - Check file size (max 100MB)
    - Ensure .txt format
    - Verify file contains valid WhatsApp export
