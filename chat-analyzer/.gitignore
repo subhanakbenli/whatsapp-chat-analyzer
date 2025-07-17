@@ -46,3 +46,7 @@ test_*.js
 *_test.js
 aa.txt
 small_test.txt
+
+# Debug/prompt files
+prompts/
+parsed_content_*.txt
